@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { triggerN8nWorkflow } from "@/lib/n8n";
 import type { IntentParameters, IntentType } from "@/types";
 
