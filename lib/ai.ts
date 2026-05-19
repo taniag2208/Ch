@@ -2,6 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import type { CharlieResponse, IntentType } from "@/types";
 
+// Groq uses the OpenAI-compatible SDK with a custom baseURL + key
+function getGroqClient() {
+  return new OpenAI({
+    apiKey: process.env.GROQ_API_KEY ?? "",
+    baseURL: "https://api.groq.com/openai/v1",
+  });
+}
+
 export const CHARLIE_SYSTEM_PROMPT = `Eres Charlie, el asistente personal de productividad, estrategia comercial y gestión de proyectos.
 
 Tu personalidad es cercana, clara, organizada, proactiva y estratégica. Hablas en español por defecto, con tono profesional pero cálido.
@@ -31,10 +39,10 @@ requires_action debe ser false solo para "general_response".
 Las fechas en formato ISO (YYYY-MM-DD), horas en HH:MM 24h.
 Si falta información crítica, pide aclaración en "message" y usa intent "general_response".`;
 
-export type LLMProvider = "anthropic" | "openai" | "ollama";
+export type LLMProvider = "anthropic" | "openai" | "groq" | "ollama";
 
 function getProvider(): LLMProvider {
-  return (process.env.LLM_PROVIDER as LLMProvider) || "anthropic";
+  return (process.env.LLM_PROVIDER as LLMProvider) || "groq";
 }
 
 function safeParseCharlie(raw: string): CharlieResponse {
@@ -93,6 +101,20 @@ async function callOpenAI(userMessage: string): Promise<string> {
   return res.choices[0]?.message?.content ?? "";
 }
 
+async function callGroq(userMessage: string): Promise<string> {
+  const client = getGroqClient();
+  const res = await client.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: CHARLIE_SYSTEM_PROMPT },
+      { role: "user", content: userMessage },
+    ],
+    temperature: 0.2,
+    max_tokens: 1024,
+  });
+  return res.choices[0]?.message?.content ?? "";
+}
+
 async function callOllama(userMessage: string): Promise<string> {
   const baseUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
   const res = await fetch(`${baseUrl}/api/chat`, {
@@ -118,6 +140,7 @@ export async function askCharlie(userMessage: string): Promise<CharlieResponse> 
   try {
     let raw = "";
     if (provider === "openai") raw = await callOpenAI(userMessage);
+    else if (provider === "groq") raw = await callGroq(userMessage);
     else if (provider === "ollama") raw = await callOllama(userMessage);
     else raw = await callAnthropic(userMessage);
     return safeParseCharlie(raw);
