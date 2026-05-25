@@ -1,70 +1,63 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Upload, MessageSquare, CheckCircle2, BookOpen } from 'lucide-react';
+import { X, Upload, MessageSquare, CheckCircle2 } from 'lucide-react';
 
 const STEPS = [
   {
-    icon: Upload,
+    Icon:  Upload,
     title: 'Sube tus archivos',
-    desc: 'Haz clic en cualquier ítem para expandirlo y subir archivos. Puedes arrastrar o seleccionar múltiples archivos a la vez.',
-    color: 'text-indigo-500',
-    bg: 'bg-indigo-50',
+    desc:  'Haz clic en un ítem para expandirlo. Puedes arrastrar o seleccionar múltiples archivos.',
   },
   {
-    icon: MessageSquare,
+    Icon:  MessageSquare,
     title: 'Agrega comentarios',
-    desc: 'Usa el campo de comentarios para agregar notas, aclaraciones o preguntas al equipo de desarrollo.',
-    color: 'text-violet-500',
-    bg: 'bg-violet-50',
+    desc:  'Usa el campo de comentarios para aclarar dudas o agregar notas al equipo.',
   },
   {
-    icon: CheckCircle2,
-    title: 'Sigue el progreso',
-    desc: 'Cada ítem tiene un estado: Pendiente (rojo), En revisión (amarillo) y Aprobado (verde). El equipo actualizará los estados.',
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-50',
+    Icon:  CheckCircle2,
+    title: 'Sigue el avance',
+    desc:  'Pendiente (rojo) → En revisión (amarillo) → Aprobado (verde). El equipo actualiza los estados.',
   },
 ];
 
 export function OnboardingBanner() {
   const [dismissed, setDismissed] = useState(false);
-
   if (dismissed) return null;
 
   return (
-    <div className="bg-gradient-to-r from-indigo-500 to-violet-600 rounded-2xl p-5 text-white relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute -top-6 -right-6 w-32 h-32 bg-white/5 rounded-full" />
-      <div className="absolute -bottom-8 -right-2 w-24 h-24 bg-white/5 rounded-full" />
+    <div className="relative bg-slate-800 rounded-2xl p-5 overflow-hidden">
+      {/* Decorative circles */}
+      <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-tita-700/20 pointer-events-none" />
+      <div className="absolute -bottom-10 right-12 w-28 h-28 rounded-full bg-tita-600/10 pointer-events-none" />
 
       <button
         onClick={() => setDismissed(true)}
-        className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+        className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20
+          flex items-center justify-center text-white/60 hover:text-white transition-colors z-10"
       >
         <X className="w-3.5 h-3.5" />
       </button>
 
-      <div className="flex items-center gap-2 mb-3">
-        <BookOpen className="w-4 h-4" />
-        <span className="text-sm font-semibold">¿Cómo funciona este portal?</span>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-6 h-6 rounded-lg gradient-tita flex items-center justify-center flex-shrink-0">
+          <span className="text-white text-[10px] font-bold">TM</span>
+        </div>
+        <p className="text-white font-semibold text-sm">¿Cómo funciona el portal?</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {STEPS.map((step, i) => {
-          const Icon = step.icon;
-          return (
-            <div key={i} className="bg-white/10 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-xs font-semibold">{step.title}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10">
+        {STEPS.map(({ Icon, title, desc }, i) => (
+          <div key={i} className="bg-white/8 hover:bg-white/12 transition-colors rounded-xl p-3.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-6 h-6 rounded-lg bg-tita-500/30 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-3.5 h-3.5 text-tita-300" />
               </div>
-              <p className="text-[11px] text-white/80 leading-relaxed">{step.desc}</p>
+              <span className="text-sm font-semibold text-white">{title}</span>
             </div>
-          );
-        })}
+            <p className="text-xs text-white/60 leading-relaxed">{desc}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

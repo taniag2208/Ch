@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { createSupabaseAdminClient } from '@/lib/supabase-admin';
 
+const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? 'portal-files';
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ fileId: string }> },
 ) {
   const { fileId } = await params;
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
+  const admin    = createSupabaseAdminClient();
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   const { data: file } = await supabase
@@ -21,29 +23,24 @@ export async function DELETE(
     .eq('id', fileId)
     .single();
 
-  if (!file) {
-    return NextResponse.json({ error: 'File not found' }, { status: 404 });
-  }
+  if (!file) return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 });
 
-  // Only the uploader or an admin can delete
+  // Check: uploader or admin role in the project
   const { data: roleRow } = await supabase
     .from('portal_user_roles')
     .select('role')
     .eq('user_id', user.id)
+    .limit(1)
     .single();
 
   if (file.uploaded_by !== user.id && roleRow?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: 'No permitido' }, { status: 403 });
   }
 
-  // Remove from storage
-  await admin.storage.from('portal-files').remove([file.storage_path]);
+  await admin.storage.from(BUCKET).remove([file.storage_path as string]);
 
-  // Remove DB record
   const { error } = await admin.from('portal_files').delete().eq('id', fileId);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ deleted: true });
 }

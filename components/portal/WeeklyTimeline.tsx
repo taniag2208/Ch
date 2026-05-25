@@ -7,60 +7,57 @@ interface WeeklyTimelineProps {
   blocks: PortalBlockWithItems[];
 }
 
-const WEEKS = [1, 2, 3, 4];
+const WEEK_LABELS = ['Sem. 1', 'Sem. 2', 'Sem. 3', 'Sem. 4'];
 
 export function WeeklyTimeline({ blocks }: WeeklyTimelineProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-4">Timeline por semanas</h3>
-      <div className="space-y-1">
-        {/* Week headers */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          {WEEKS.map((w) => (
-            <div key={w} className="text-center">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                Sem. {w}
-              </span>
-            </div>
-          ))}
-        </div>
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-soft p-5">
+      <h3 className="text-sm font-bold text-slate-700 mb-4">
+        Timeline del proyecto
+      </h3>
 
-        {/* Gantt-style blocks */}
+      {/* Week columns header */}
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {WEEK_LABELS.map((w) => (
+          <div key={w} className="text-center">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{w}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Block rows */}
+      <div className="space-y-2">
         {blocks.map((block) => {
-          const start = block.week_start ?? 1;
-          const end = block.week_end ?? start;
-          const colStart = start;
-          const colSpan = end - start + 1;
+          const start  = block.week_start ?? 1;
+          const end    = block.week_end   ?? start;
+          const span   = end - start + 1;
+          const offset = start - 1;
 
           return (
             <div key={block.id} className="grid grid-cols-4 gap-2 items-center">
-              {/* Empty cells before */}
-              {Array.from({ length: colStart - 1 }).map((_, i) => (
-                <div key={i} />
-              ))}
+              {/* Empty leading columns */}
+              {Array.from({ length: offset }).map((_, i) => <div key={i} />)}
 
               {/* Block bar */}
               <div
-                className="rounded-lg overflow-hidden"
-                style={{ gridColumn: `${colStart} / span ${colSpan}` }}
+                className="rounded-xl overflow-hidden"
+                style={{ gridColumn: `${start} / span ${span}` }}
               >
-                <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-2">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-xs font-medium text-indigo-700 truncate">
+                <div className="bg-slate-800 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-white truncate">
                       {block.icon} {block.title}
                     </span>
-                    <span className="text-[11px] font-bold text-indigo-500 flex-shrink-0">
+                    <span className="text-xs font-black text-tita-300 flex-shrink-0 ml-2">
                       {block.progress.percentage}%
                     </span>
                   </div>
-                  <ProgressBar percentage={block.progress.percentage} height="sm" />
+                  <ProgressBar percentage={block.progress.percentage} height="xs" />
                 </div>
               </div>
 
-              {/* Empty cells after */}
-              {Array.from({ length: 4 - (colStart - 1) - colSpan }).map((_, i) => (
-                <div key={i} />
-              ))}
+              {/* Empty trailing columns */}
+              {Array.from({ length: 4 - offset - span }).map((_, i) => <div key={i} />)}
             </div>
           );
         })}

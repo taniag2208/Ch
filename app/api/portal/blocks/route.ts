@@ -9,30 +9,32 @@ import type {
   UserRole,
 } from '@/types/portal';
 
+const BUCKET = process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? 'portal-files';
+
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const projectSlug = searchParams.get('project') ?? 'technofoods-shopify';
+  const project_slug = new URL(request.url).searchParams.get('project') ?? 'technofoods-shopify';
 
   const supabase = await createSupabaseServerClient();
-  const admin = createSupabaseAdminClient();
+  const admin    = createSupabaseAdminClient();
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // ── Auth ──────────────────────────────────────────────────────────
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (authErr || !user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  // Fetch project
-  const { data: project, error: projError } = await supabase
+  // ── Project ───────────────────────────────────────────────────────
+  const { data: project, error: projErr } = await supabase
     .from('portal_projects')
     .select('*')
-    .eq('slug', projectSlug)
+    .eq('slug', project_slug)
     .single();
 
-  if (projError || !project) {
-    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  if (projErr || !project) {
+    return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 });
   }
 
-  // User role
+  // ── User role ─────────────────────────────────────────────────────
   const { data: roleRow } = await supabase
     .from('portal_user_roles')
     .select('role')
@@ -42,48 +44,43 @@ export async function GET(request: NextRequest) {
 
   const user_role: UserRole = (roleRow?.role as UserRole) ?? 'client';
 
-  // Fetch blocks
-  const { data: blocks, error: blocksError } = await supabase
+  // ── Blocks ────────────────────────────────────────────────────────
+  const { data: blocks, error: blocksErr } = await supabase
     .from('portal_blocks')
     .select('*')
     .eq('project_id', project.id)
     .order('order_index');
 
-  if (blocksError) {
-    return NextResponse.json({ error: blocksError.message }, { status: 500 });
-  }
+  if (blocksErr) return NextResponse.json({ error: blocksErr.message }, { status: 500 });
 
-  // Fetch all items for this project
-  const blockIds = (blocks ?? []).map((b) => b.id);
-  const { data: items, error: itemsError } = await supabase
+  // ── Items ─────────────────────────────────────────────────────────
+  const blockIds = (blocks ?? []).map((b) => b.id as string);
+  const { data: items, error: itemsErr } = await supabase
     .from('portal_items')
     .select('*')
     .in('block_id', blockIds)
     .order('order_index');
 
-  if (itemsError) {
-    return NextResponse.json({ error: itemsError.message }, { status: 500 });
-  }
+  if (itemsErr) return NextResponse.json({ error: itemsErr.message }, { status: 500 });
 
-  // Fetch all files
-  const itemIds = (items ?? []).map((i) => i.id);
+  // ── Files + signed URLs ───────────────────────────────────────────
+  const itemIds = (items ?? []).map((i) => i.id as string);
   const { data: files } = await supabase
     .from('portal_files')
     .select('*')
     .in('item_id', itemIds)
     .order('created_at');
 
-  // Generate signed URLs for files
   const filesWithUrls = await Promise.all(
     (files ?? []).map(async (file) => {
-      const { data: signedData } = await admin.storage
-        .from('portal-files')
-        .createSignedUrl(file.storage_path, 3600);
-      return { ...file, signed_url: signedData?.signedUrl ?? null };
+      const { data } = await admin.storage
+        .from(BUCKET)
+        .createSignedUrl(file.storage_path as string, 3600);
+      return { ...file, signed_url: data?.signedUrl ?? null };
     }),
   );
 
-  // Assemble blocks with items and progress
+  // ── Assemble ──────────────────────────────────────────────────────
   const blocksWithItems: PortalBlockWithItems[] = (blocks ?? []).map((block) => {
     const blockItems: PortalItemWithFiles[] = (items ?? [])
       .filter((i) => i.block_id === block.id)
@@ -94,17 +91,15 @@ export async function GET(request: NextRequest) {
 
     return {
       ...block,
-      items: blockItems,
-      progress: calcBlockProgress(blockItems),
+      items:    blockItems,
+      progress: calcBlockProgress(block.id as string, blockItems),
     };
   });
 
-  const progress = calcOverallProgress(blocksWithItems);
-
   const payload: PortalDashboardData = {
     project,
-    blocks: blocksWithItems,
-    progress,
+    blocks:    blocksWithItems,
+    progress:  calcOverallProgress(blocksWithItems),
     user_role,
   };
 

@@ -1,12 +1,13 @@
 {
-  "name": "charlie-assistant",
-  "version": "0.1.0",
+  "name": "tita-client-portal",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -14,18 +15,11 @@
     "react-dom": "^19.0.0",
     "@supabase/supabase-js": "^2.45.0",
     "@supabase/ssr": "^0.5.1",
-    "@anthropic-ai/sdk": "^0.32.0",
-    "openai": "^4.65.0",
     "lucide-react": "^0.462.0",
-    "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
-    "date-fns": "^4.1.0",
-    "uuid": "^10.0.0",
-    "@radix-ui/react-slot": "^1.1.0",
-    "@radix-ui/react-scroll-area": "^1.2.0",
-    "@radix-ui/react-avatar": "^1.1.1"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "typescript": "^5",
