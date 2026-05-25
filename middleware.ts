@@ -8,8 +8,10 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = pathname.startsWith("/login");
   const isProtected =
     pathname.startsWith("/chat") ||
+    pathname.startsWith("/portal") ||
     pathname.startsWith("/api/chat") ||
-    pathname.startsWith("/api/execute-action");
+    pathname.startsWith("/api/execute-action") ||
+    pathname.startsWith("/api/portal");
 
   try {
     let response = NextResponse.next({ request });
@@ -47,7 +49,8 @@ export async function middleware(request: NextRequest) {
 
     if (user && isAuthRoute) {
       const url = request.nextUrl.clone();
-      url.pathname = "/chat";
+      const next = request.nextUrl.searchParams.get("next") ?? "/chat";
+      url.pathname = next;
       return NextResponse.redirect(url);
     }
 
