@@ -1,0 +1,29 @@
+name: Charlie — Follow-up Emails
+
+on:
+  schedule:
+    - cron: "0 14 * * 1-5" # 9am Colombia (UTC-5)
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DIRECT_URL: ${{ secrets.DIRECT_URL }}
+  HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+  GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+  GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+  GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+  GMAIL_SENDER_EMAIL: ${{ secrets.GMAIL_SENDER_EMAIL }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  LLM_MODEL: ${{ secrets.LLM_MODEL }}
+
+jobs:
+  emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/flow3-followup-emails.ts

@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LeadSnapshot {
+  id           String    @id
+  hubspotId    String    @unique
+  name         String
+  stage        String
+  owner        String
+  vertical     String?
+  dealValue    Float?
+  lastActivity DateTime?
+  daysStale    Int       @default(0)
+  nextAction   String?
+  email        String?
+  phone        String?
+  company      String?
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+}
+
+model CharlieConfig {
+  id                  String   @id @default(cuid())
+  stageInactivityDays Json     @default("{\"Prospecto\": 3, \"Propuesta\": 5, \"Negociación\": 7, \"Demo\": 4}")
+  dailyEmailLimit     Int      @default(10)
+  exclusionList       String[] @default([])
+  flow1Enabled        Boolean  @default(true)
+  flow2Enabled        Boolean  @default(true)
+  flow3Enabled        Boolean  @default(true)
+  flow1Cron           String   @default("0 13 * * 1-5")
+  flow2Cron           String   @default("0 13,16,21 * * 1-5")
+  flow3Cron           String   @default("0 14 * * 1-5")
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
+model CharlieLog {
+  id        String   @id @default(cuid())
+  type      String
+  recipient String
+  content   String   @db.Text
+  status    String
+  error     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] },
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "isolatedModules": false,
+    "incremental": false
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
+  "include": ["scripts/**/*", "lib/**/*", "prisma/**/*"],
+  "exclude": ["node_modules", "app", "components"]
+}
