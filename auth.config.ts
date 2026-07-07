@@ -25,6 +25,7 @@ export const authConfig = {
     error: "/login",
   },
   session: { strategy: "jwt" },
+  trustHost: true,
   callbacks: {
     /** Restrict sign-in to @titamedia.com accounts. */
     async signIn({ profile }) {
