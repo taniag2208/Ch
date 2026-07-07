@@ -1,0 +1,26 @@
+name: Charlie — Informe Diario
+
+on:
+  schedule:
+    - cron: "0 13 * * 1-5" # 8am Colombia (UTC-5)
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DIRECT_URL: ${{ secrets.DIRECT_URL }}
+  HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+  GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  LLM_MODEL: ${{ secrets.LLM_MODEL }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/flow1-daily-report.ts

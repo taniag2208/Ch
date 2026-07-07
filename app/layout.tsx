@@ -2,15 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Charlie — Tu asistente personal",
+  title: "Charlie 🤖 · Tita Media",
   description:
-    "Charlie es tu asistente personal de productividad, estrategia comercial y gestión de proyectos.",
+    "Charlie, el agente comercial de IA del equipo de Tita Media — cuida el pipeline, avisa de leads fríos y hace seguimiento.",
   applicationName: "Charlie",
-  keywords: ["productividad", "asistente", "IA", "Charlie", "gestión"],
-  authors: [{ name: "Charlie" }],
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export const viewport: Viewport = {
@@ -26,7 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased bg-background text-foreground">
+        {children}
+      </body>
     </html>
   );
 }
