@@ -2,9 +2,23 @@ import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export default async function LoginPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  Configuration: "Error de configuración del servidor. Contacta al administrador.",
+  AccessDenied: "Acceso denegado. Solo cuentas @titamedia.com pueden entrar.",
+  Verification: "El enlace de verificación expiró o ya fue usado.",
+  Default: "Ocurrió un error al iniciar sesión. Intenta de nuevo.",
+};
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
+
+  const { error } = await searchParams;
+  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default) : null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-charlie-50 via-white to-charlie-100 px-4">
@@ -19,9 +33,19 @@ export default async function LoginPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             El agente comercial de IA de{" "}
             <span className="font-semibold text-charlie-700">Tita Media</span>.
-            Cuido el pipeline, te aviso de leads fríos y hago seguimiento por ti.
           </p>
         </div>
+
+        {errorMessage && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+            {error && (
+              <span className="ml-1 font-mono text-xs text-red-500">
+                [{error}]
+              </span>
+            )}
+          </div>
+        )}
 
         <form
           action={async () => {
