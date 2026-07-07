@@ -28,9 +28,11 @@ export const authConfig = {
   trustHost: true,
   callbacks: {
     /** Restrict sign-in to @titamedia.com accounts. */
-    async signIn({ profile }) {
-      const email = profile?.email;
-      return Boolean(email && email.endsWith(ALLOWED_DOMAIN));
+    async signIn({ user, profile }) {
+      const email = profile?.email ?? user?.email;
+      console.log("[charlie:signIn]", { email, profileEmail: profile?.email, userEmail: user?.email });
+      if (!email) return false;
+      return email.endsWith(ALLOWED_DOMAIN);
     },
     /** Protect every route except /login (middleware entry point). */
     authorized({ auth, request }) {
