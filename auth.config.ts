@@ -1,22 +1,23 @@
 import type { NextAuthConfig } from "next-auth";
-import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import { verifyCredentials } from "@/lib/auth-users";
 
-const ALLOWED_DOMAIN = "@titamedia.com";
-
-/**
- * Edge-safe auth config (no Prisma adapter). Shared by the middleware and the
- * full Node-runtime config in auth.ts.
- */
 export const authConfig = {
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      authorization: {
-        params: {
-          prompt: "select_account",
-          hd: "titamedia.com",
-        },
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Contraseña", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email as string | undefined;
+        const password = credentials?.password as string | undefined;
+        if (!email || !password) return null;
+
+        const user = await verifyCredentials(email, password);
+        if (!user) return null;
+
+        return { id: user.email, email: user.email, name: user.name };
       },
     }),
   ],
@@ -27,21 +28,12 @@ export const authConfig = {
   session: { strategy: "jwt" },
   trustHost: true,
   callbacks: {
-    /** Restrict sign-in to @titamedia.com accounts. */
-    async signIn({ user, profile }) {
-      const email = profile?.email ?? user?.email;
-      console.log("[charlie:signIn]", { email, profileEmail: profile?.email, userEmail: user?.email });
-      if (!email) return false;
-      return email.endsWith(ALLOWED_DOMAIN);
-    },
-    /** Protect every route except /login (middleware entry point). */
     authorized({ auth, request }) {
       const isLoggedIn = Boolean(auth?.user);
       const { pathname } = request.nextUrl;
       const isLogin = pathname.startsWith("/login");
 
       if (isLogin) {
-        // Signed-in users hitting /login get bounced to the dashboard.
         if (isLoggedIn) {
           return Response.redirect(new URL("/dashboard", request.nextUrl));
         }
@@ -50,12 +42,18 @@ export const authConfig = {
       return isLoggedIn;
     },
     async jwt({ token, user }) {
-      if (user) token.uid = user.id;
+      if (user) {
+        token.uid = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.uid) {
+      if (session.user) {
         session.user.id = token.uid as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
       return session;
     },

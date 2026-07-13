@@ -1,24 +1,26 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { AuthError } from "next-auth";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  Configuration: "Error de configuración del servidor. Contacta al administrador.",
-  AccessDenied: "Acceso denegado. Solo cuentas @titamedia.com pueden entrar.",
-  Verification: "El enlace de verificación expiró o ya fue usado.",
+  CredentialsSignin: "Email o contraseña incorrectos.",
+  Configuration: "Error de configuración. Contacta al administrador.",
   Default: "Ocurrió un error al iniciar sesión. Intenta de nuevo.",
 };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
 
   const { error } = await searchParams;
-  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default) : null;
+  const errorMessage = error
+    ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default)
+    : null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-charlie-50 via-white to-charlie-100 px-4">
@@ -39,27 +41,72 @@ export default async function LoginPage({
         {errorMessage && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
-            {error && (
-              <span className="ml-1 font-mono text-xs text-red-500">
-                [{error}]
-              </span>
-            )}
           </div>
         )}
 
         <form
-          action={async () => {
+          action={async (formData: FormData) => {
             "use server";
-            await signIn("google", { redirectTo: "/dashboard" });
+            const email = formData.get("email") as string;
+            const password = formData.get("password") as string;
+            try {
+              await signIn("credentials", {
+                email,
+                password,
+                redirectTo: "/dashboard",
+              });
+            } catch (err) {
+              if (err instanceof AuthError) {
+                redirect(`/login?error=${err.type}`);
+              }
+              throw err;
+            }
           }}
+          className="space-y-4"
         >
-          <Button type="submit" size="lg" className="w-full gradient-charlie text-white hover:opacity-90">
-            Entrar con Google (@titamedia.com)
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="taniag@titamedia.com"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none ring-charlie-400 focus:border-charlie-400 focus:ring-2"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Contraseña
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              placeholder="••••••••"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none ring-charlie-400 focus:border-charlie-400 focus:ring-2"
+            />
+          </div>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full gradient-charlie text-white hover:opacity-90"
+          >
+            Ingresar
           </Button>
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Acceso restringido a cuentas{" "}
+          Acceso restringido al equipo{" "}
           <span className="font-medium">@titamedia.com</span>
         </p>
       </div>
