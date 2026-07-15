@@ -160,9 +160,13 @@ export async function getStaleDeals(stageConfig: StageConfig): Promise<Deal[]> {
 }
 
 /** Fetch all deals (paginated) — cached 5 min so HubSpot isn't hit on every click. */
-export const getAllDeals = unstable_cache(
+export async function getAllDeals(): Promise<Deal[]> {
+  return _getCachedDeals();
+}
+
+const _getCachedDeals = unstable_cache(
   async (): Promise<Deal[]> => _getAllDeals(),
-  ["hubspot-deals"],
+  ["hubspot-deals-v2"],
   { revalidate: 300 },
 );
 
