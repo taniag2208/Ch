@@ -2,6 +2,7 @@
  * HubSpot integration — direct REST API v3 calls (no MCP).
  * Uses a private app token from HUBSPOT_TOKEN.
  */
+import { unstable_cache } from "next/cache";
 import type { Deal, DealWithActivities, Activity, Contact, StageConfig } from "@/lib/types";
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
@@ -158,8 +159,14 @@ export async function getStaleDeals(stageConfig: StageConfig): Promise<Deal[]> {
   return out.sort((a, b) => b.daysStale - a.daysStale);
 }
 
-/** Fetch all deals (paginated) for the LeadSnapshot sync. */
-export async function getAllDeals(): Promise<Deal[]> {
+/** Fetch all deals (paginated) — cached 5 min so HubSpot isn't hit on every click. */
+export const getAllDeals = unstable_cache(
+  async (): Promise<Deal[]> => _getAllDeals(),
+  ["hubspot-deals"],
+  { revalidate: 300 },
+);
+
+async function _getAllDeals(): Promise<Deal[]> {
   const deals: any[] = [];
   let after: string | undefined;
   do {

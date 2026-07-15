@@ -1,21 +1,36 @@
-import { prisma } from "@/lib/prisma";
 import { getConfig, stageConfigOf } from "@/lib/charlie/config";
 import { leadStatus } from "@/lib/leads/status";
+import { getAllDeals } from "@/lib/integrations/hubspot";
+import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Bot } from "lucide-react";
+import { CheckCircle2, XCircle, Bot, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [leads, logs, config] = await Promise.all([
-    prisma.leadSnapshot.findMany(),
-    prisma.charlieLog.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
-    getConfig(),
-  ]);
+  const config = await getConfig();
   const stageConfig = stageConfigOf(config);
+
+  // Fetch HubSpot en tiempo real (con caché de 5 min de Next.js)
+  let leads: Awaited<ReturnType<typeof getAllDeals>> = [];
+  let hubspotError: string | null = null;
+
+  if (!process.env.HUBSPOT_TOKEN) {
+    hubspotError = "no-token";
+  } else {
+    try {
+      leads = await getAllDeals();
+    } catch (err) {
+      hubspotError = err instanceof Error ? err.message : "Error conectando HubSpot";
+    }
+  }
+
+  const logs = await prisma.charlieLog
+    .findMany({ orderBy: { createdAt: "desc" }, take: 5 })
+    .catch(() => []);
 
   const total = leads.length;
   const totalValue = leads.reduce((s, l) => s + (l.dealValue || 0), 0);
@@ -48,6 +63,28 @@ export default async function DashboardPage() {
           El pulso del pipeline comercial, según Charlie 🤖
         </p>
       </header>
+
+      {hubspotError && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div>
+            {hubspotError === "no-token" ? (
+              <>
+                <p className="font-medium">HubSpot no está conectado</p>
+                <p className="mt-0.5 text-amber-700">
+                  Agrega la variable <code className="font-mono">HUBSPOT_TOKEN</code> en Vercel para ver los leads del pipeline.
+                  Crea un Private App en HubSpot → Settings → Integrations → Private Apps.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium">Error al conectar con HubSpot</p>
+                <p className="mt-0.5 text-amber-700">{hubspotError}</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -86,11 +123,9 @@ export default async function DashboardPage() {
           </h2>
           {Object.keys(byStage).length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Todavía no hay leads sincronizados. Ve a{" "}
-              <Link href="/leads" className="text-charlie-600 underline">
-                Leads
-              </Link>{" "}
-              y pulsa Actualizar.
+              {hubspotError
+                ? "Conecta HubSpot para ver el pipeline."
+                : "No hay leads activos."}
             </p>
           ) : (
             <ul className="space-y-3">
@@ -101,9 +136,7 @@ export default async function DashboardPage() {
                   return (
                     <li key={stage}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="font-medium text-gray-700">
-                          {stage}
-                        </span>
+                        <span className="font-medium text-gray-700">{stage}</span>
                         <span className="text-muted-foreground">
                           {count} · {pct}%
                         </span>
@@ -126,7 +159,9 @@ export default async function DashboardPage() {
             Pipeline por dueño
           </h2>
           {Object.keys(byOwner).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin datos aún.</p>
+            <p className="text-sm text-muted-foreground">
+              {hubspotError ? "Conecta HubSpot para ver los dueños." : "Sin datos aún."}
+            </p>
           ) : (
             <ul className="divide-y">
               {Object.entries(byOwner)
@@ -154,8 +189,7 @@ export default async function DashboardPage() {
         </div>
         {logs.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Charlie todavía no ha ejecutado ningún flujo. Cuando corran los
-            informes, alertas o correos, aparecerán aquí.
+            Charlie todavía no ha ejecutado ningún flujo.
           </p>
         ) : (
           <ul className="divide-y">
