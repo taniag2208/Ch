@@ -170,6 +170,34 @@ const _getCachedDeals = unstable_cache(
   { revalidate: 300 },
 );
 
+/** Fetch deals created in 2026 with no caching (for alerts). */
+export async function get2026Deals(): Promise<Deal[]> {
+  const since2026 = new Date("2026-01-01T00:00:00Z").getTime();
+  const data = await hsFetch<{ results: any[]; paging?: any }>(
+    "/crm/v3/objects/deals/search",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: "createdate",
+                operator: "GTE",
+                value: String(since2026),
+              },
+            ],
+          },
+        ],
+        properties: DEAL_PROPERTIES,
+        sorts: [{ propertyName: "hs_lastmodifieddate", direction: "DESCENDING" }],
+        limit: 200,
+      }),
+    },
+  );
+  return Promise.all((data.results || []).map(mapDeal));
+}
+
 async function _getAllDeals(): Promise<Deal[]> {
   const deals: any[] = [];
   let after: string | undefined;
